@@ -1,0 +1,119 @@
+From: Fabricio
+Date: Tue, 20 Sep 2022 12:05:45 -0300
+Subject: [PATCH 1/3] fix(redacted_0): better error handling
+
+This was a bug where a getter in an ActiveRecord used a File.read that was assumed to aways return
+content.
+
+But as things are in IO, file reading can raise exceptions, one common possibility for IO interaction
+error is the Errno::ENOENT error when the file path is not found.
+
+The patch wraps the code region that could fail with such an error inside an error handling Ruby
+block, (begin / rescue). On the backend side.
+
+On the frontend side, React stuff (redux store, dispatch, actions, etc), the action payload of a
+request already had an `error` boolean for when the Rest API GET call returned something different
+than a status code 200, but no error message was displayed, this patch includes a check for this
+boolean and dispatches a redux action to display an error toast message.
+---
+ .../api/v1/redacted_1.rb      | 18 ++++++++++++------
+ 1 file changed, 12 insertions(+), 6 deletions(-)
+
+diff --git a/app/controllers/api/v1/redacted_1.rb b/app/controllers/api/v1/redacted_1.rb
+index 01e5cebcf..11a8b80fd 100644
+--- a/app/controllers/api/v1/redacted_1.rb
++++ b/app/controllers/api/v1/redacted_1.rb
+@@ -7,12 +7,18 @@ module Api
+       def index
+         redacted_2 = filter_scripts
+ 
+-        render(
+-          json: redacted_2,
+-          each_serializer: Redacted3::Redacted4,
+-          adapter: :json,
+-          redacted_5: with_params[:redacted_5]
+-        )
++        begin
++          render(
++            json: redacted_2,
++            each_serializer: Redacted3::Redacted4,
++            adapter: :json,
++            redacted_5: with_params[:redacted_5]
++          )
++        rescue Errno::ENOENT => e
++          logger.error e.inspect
++          ap e.backtrace
++          render(json: { error: e.message }, status: :not_found)
++        end
+       end
+ 
+       # GET /api/v1/redacted_2/:id
+-- 
+2.25.1
+
+
+From: Fabricio
+Date: Tue, 20 Sep 2022 12:37:26 -0300
+Subject: [PATCH 2/3] fix(redacted_2): better error feedback on redacted_6
+ fetch
+
+---
+ app/javascript/src/components/pages/redacted_6/index.tsx | 4 +++-
+ app/javascript/src/locales/en/translation.json        | 1 +
+ app/javascript/src/locales/es/translation.json        | 1 +
+ app/javascript/src/locales/pt/translation.json        | 1 +
+ 4 files changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/app/javascript/src/components/pages/redacted_6/index.tsx b/app/javascript/src/components/pages/redacted_6/index.tsx
+index 823599242..70221ca06 100644
+--- a/app/javascript/src/components/pages/redacted_6/index.tsx
++++ b/app/javascript/src/components/pages/redacted_6/index.tsx
+@@ -93,7 +93,9 @@ const Redacted_6 = () => {
+   const getRedacted6 = async () => {
+     const redacted6 = await fetchRedacted6(undefined, undefined, true)
+     dispatch(redacted6)
+-
++    if (redacted6.error){
++      dispatch(setErrorMessage(t('redacted6.index.messages.request_error_get')))
++    }
+ 
+diff --git a/app/javascript/src/locales/en/translation.json b/app/javascript/src/locales/en/translation.json
+index 368542891..e6a05b8e4 100644
+--- a/app/javascript/src/locales/en/translation.json
++++ b/app/javascript/src/locales/en/translation.json
+@@ -964,6 +964,7 @@
++        "request_error_get": "Error fetching redacted6",
+diff --git a/app/javascript/src/locales/es/translation.json b/app/javascript/src/locales/es/translation.json
+index 5d48dfdd2..3025c46ea 100644
+--- a/app/javascript/src/locales/es/translation.json
++++ b/app/javascript/src/locales/es/translation.json
+@@ -963,6 +963,7 @@
++        "request_error_get": "No se pudo listar los redacted6",
+diff --git a/app/javascript/src/locales/pt/translation.json b/app/javascript/src/locales/pt/translation.json
+index aaed37191..e0e94c8e6 100644
+--- a/app/javascript/src/locales/pt/translation.json
++++ b/app/javascript/src/locales/pt/translation.json
+@@ -964,6 +964,7 @@
++        "request_error_get": "Ocorreu um erro durante a busca por redacted6",
+-- 
+2.25.1
+
+
+From: Fabricio
+Date: Tue, 20 Sep 2022 12:41:54 -0300
+Subject: [PATCH 3/3] doc(CHANGELOG): update
+
+---
+ CHANGELOG.md | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index e6aa74f22..7073d4e26 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -69,6 +69,7 @@
++* Melhora o feedback de erros quando a listagem de redacted6 falha
+ 
+-- 
+2.25.1
+
