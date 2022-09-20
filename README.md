@@ -6,6 +6,8 @@ Out of context snippets of code
 It's been 2 years that I am working almost exclusively on proprietary software, and this is making
 my Github's contributions map super inactive.
 
+![](./contributions.png)
+
 I know that having a green / healthy Github's contribution map is a silly goal to have in life,
 but at the same time it is a **statement**. A person with many code contributions is a person
 that is publishing code, useful or not, relevant or not. To have a green github map is like 
